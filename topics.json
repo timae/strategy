@@ -1,0 +1,71 @@
+{
+  "title": "Strategietage Heinzenberg 2026",
+  "categories": [
+    {
+      "name": "Rückblick & Planung",
+      "topics": [
+        { "id": "rp-goals-2026", "title": "Review Goals 2026: Prio / Planning / Topics", "context": "2026 Prio / Planning; 2026 Topics" },
+        { "id": "rp-rueckblick-2026", "title": "Rückblick 2026: Entwicklungen, Veränderungen, Erfolge", "context": "What happened in 2026" },
+        { "id": "rp-workshops", "title": "Resultate Workshops Main Event: Debriefing, Output & Umsetzung", "context": "Debriefing Workshops; Output & Umsetzung" },
+        { "id": "rp-milestones-2027", "title": "Milestones 2027", "context": "Zur Nachvollziehbarkeit (Milestones 2025 – 2024)" }
+      ]
+    },
+    {
+      "name": "Pricing & Verrechnung",
+      "topics": [
+        { "id": "pr-committed-use", "title": "Committed Use", "context": "Wartet auf Odoo. Weiterer Schritt wäre NKE-Preiserhöhung (aktuell kein Commitment vorhanden). Offen seit 2024." },
+        { "id": "pr-honorierung-deals", "title": "Honorierung Deals", "context": "Offen seit 2024; im Themenpapier kein weiterer Detailinhalt dokumentiert." },
+        { "id": "pr-hw-ohne-ressourcen", "title": "Product Pricing: HW ohne Ressourcen / IP", "context": "Offen seit 2024" },
+        { "id": "pr-ip-adressen", "title": "Product Pricing: IP-Adressen verrechnen", "context": "IPv6 standardmässig nicht möglich (gewisse Services unterstützen es nicht), IPv4 kostet; Netzwerk-Themen. Offen seit 2024." },
+        { "id": "pr-managed-services", "title": "Product Pricing: Managed Services – was ist inkludiert, was nicht", "context": "Offen seit 2024" },
+        { "id": "pr-ondemand-vs-managed-db", "title": "Product Pricing: On Demand vs. Managed DB", "context": "Unterscheidung / Vergleichsübersicht. Offen seit 2024." },
+        { "id": "pr-backup-retention", "title": "Product Pricing: Backup Retention", "context": "Offen seit 2024" }
+      ]
+    },
+    {
+      "name": "Produkt & Cockpit",
+      "topics": [
+        { "id": "pc-katalog", "title": "Produkt & Service Katalog", "context": "Aus 2025: welche Produkte haben wir und welche wollen wir" },
+        { "id": "pc-ha-failover-replika", "title": "HA / Failover / Replika Übersicht", "context": "Inkl. HA-Produkte vs. Replikation (offen seit 2024)" },
+        { "id": "pc-deploio-renuo", "title": "Deploio: Renuo Wunschliste 2027", "context": "" },
+        { "id": "pc-deploio-kpi", "title": "Deploio: KPI hinter To-Dos wie Free Tier", "context": "" },
+        { "id": "pc-cockpit-self-service", "title": "Cockpit: alle Produkte „Self-Service“", "context": "Aus Workshop 2025" }
+      ]
+    },
+    {
+      "name": "Support & SLA",
+      "topics": [
+        { "id": "su-service-desk", "title": "Service Desk: Stellenbeschreibung & Pensum", "context": "" },
+        { "id": "su-sla-self-service", "title": "SLA Self Service", "context": "Offen seit 2024" },
+        { "id": "su-sla-launch", "title": "SLA: Launch 01.01.2027 mit neuen Offerten / Vertragsvorlagen", "context": "Ziel-Launch 01.01.2027" }
+      ]
+    },
+    {
+      "name": "Go-to-Market",
+      "topics": [
+        { "id": "gm-marketing-rolle", "title": "Marketing: Erwartungen, Stellenbeschreibung & Pensum", "context": "Erwartungen Inhalt / Stellenbeschreibung; Pensum" },
+        { "id": "gm-sales-pensum", "title": "Sales: Pensum", "context": "" },
+        { "id": "gm-key-account", "title": "Key Account, Key Agency & Partner Management", "context": "Teil von Sales" },
+        { "id": "gm-marketing-struktur", "title": "Marketing-Struktur vereinheitlichen (Grobkonzept)", "context": "GitLab: marketing-tasks / struktur-vereinheitlichung-grobkonzept.md" },
+        { "id": "gm-produktentscheid-webseite", "title": "Produktentscheid über Webseite, Up- & Cross-Selling über Docs?", "context": "" },
+        { "id": "gm-user-journey", "title": "User Journey mit Marketing: klare Einstiege schaffen", "context": "" }
+      ]
+    },
+    {
+      "name": "Kommunikation",
+      "topics": [
+        { "id": "ko-extern", "title": "Kommunikation nach aussen", "context": "Keine absoluten Aussagen; einheitliche Sprache; Do’s/Don’ts; Statusmeldungen im 4-Augen-Prinzip?" },
+        { "id": "ko-intern", "title": "Kommunikation intern: EB-Entscheide", "context": "" }
+      ]
+    },
+    {
+      "name": "People & Finanzen",
+      "topics": [
+        { "id": "pf-hr", "title": "HR: Erwartungen & Ziele", "context": "" },
+        { "id": "pf-loehne", "title": "Löhne & Beteiligung 2027", "context": "Rahmen und Budget für 2027 Lohnplanung" },
+        { "id": "pf-finanzen", "title": "Finanzen", "context": "Im Themenpapier ohne Inhalt – bei Bedarf ergänzen" },
+        { "id": "pf-accounting-price", "title": "Accounting 2027: Price per product", "context": "Im Themenpapier mit Fragezeichen" }
+      ]
+    }
+  ]
+}

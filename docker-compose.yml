@@ -1,0 +1,35 @@
+services:
+  redis:
+    image: redis:7-alpine
+    command: ["redis-server", "--appendonly", "yes"]
+    volumes:
+      - redis-data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    restart: unless-stopped
+    # Redis is intentionally NOT published to the host.
+
+  app:
+    build: .
+    depends_on:
+      redis:
+        condition: service_healthy
+    ports:
+      - "3000:3000"
+    environment:
+      REDIS_URL: redis://redis:6379
+      PARTICIPANTS: "Nikki,Tom,Tim"
+      POINTS_PER_PERSON: "9"
+      DAY2_MINUTES: "360"      # Tag 2: Zeit für Themen mit >= MIN_VOTERS Stimmen
+      PITCH_MINUTES: "5"       # Nachmittag: Pitch pro Thema mit nur einer Stimme
+      MIN_VOTERS: "2"
+      ACCESS_PIN: ""           # optional, z. B. "4711" -> PIN-Abfrage beim Öffnen
+    volumes:
+      - ./topics.json:/app/topics.json:ro
+    restart: unless-stopped
+
+volumes:
+  redis-data:

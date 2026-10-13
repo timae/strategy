@@ -1,0 +1,436 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Strategietage Voting</title>
+<style>
+  :root {
+    --bg: #f5f6f8; --card: #fff; --ink: #1c2430; --muted: #6b7684; --line: #e2e6ec;
+    --brand: #1f3864; --brand-2: #2f5597; --ok: #2e7d32; --warn: #b26a00; --bad: #c62828;
+    --soft: #eaf0fb;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--ink);
+         font: 15px/1.45 Arial, "Helvetica Neue", Helvetica, sans-serif; }
+  .wrap { max-width: 920px; margin: 0 auto; padding: 20px 16px 130px; }
+  header.top { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 14px; flex-wrap: wrap; }
+  h1 { font-size: 22px; margin: 0; color: var(--brand); }
+  h2 { font-size: 15px; margin: 22px 0 8px; color: var(--brand); text-transform: uppercase; letter-spacing: .04em;
+       display: flex; align-items: center; gap: 8px; }
+  h2 .cnt { font-size: 12px; font-weight: normal; color: var(--muted); text-transform: none; letter-spacing: 0; }
+  h3 { margin: 0 0 4px; font-size: 17px; }
+  .muted { color: var(--muted); }
+  .small { font-size: 13px; }
+  .card { background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 14px 16px; margin-bottom: 12px; }
+  .intro { background: var(--soft); border-color: #d3e0f5; }
+  button { font: inherit; cursor: pointer; border-radius: 8px; border: 1px solid var(--line); background: #fff; color: var(--ink); padding: 8px 14px; }
+  button:hover:not(:disabled) { border-color: var(--brand-2); }
+  button:disabled { opacity: .4; cursor: not-allowed; }
+  button.primary { background: var(--brand); color: #fff; border-color: var(--brand); font-weight: bold; }
+  button.primary:hover:not(:disabled) { background: var(--brand-2); }
+  button.ghost { background: transparent; }
+  button.danger { color: var(--bad); border-color: #efc4c4; }
+  .link { background: none; border: none; color: var(--brand-2); padding: 0; text-decoration: underline; }
+
+  /* identity / pin */
+  .center { max-width: 420px; margin: 12vh auto 0; text-align: center; }
+  .pick { display: grid; gap: 10px; margin-top: 16px; }
+  .pick button { padding: 14px; font-size: 17px; }
+  input[type=password], input[type=number], input[type=text] { font: inherit; padding: 8px 10px; border: 1px solid var(--line); border-radius: 8px; width: 100%; }
+  input[type=number] { width: 90px; }
+
+  /* progress */
+  .progress { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+  .dots { display: flex; gap: 6px; flex-wrap: wrap; }
+  .dot { width: 18px; height: 18px; border-radius: 50%; border: 2px solid var(--brand-2); background: #fff; }
+  .dot.on { background: var(--brand-2); }
+  .chips { display: flex; gap: 6px; flex-wrap: wrap; }
+  .chip { font-size: 13px; padding: 3px 10px; border-radius: 99px; background: #eef0f3; color: var(--muted); }
+  .chip.ok { background: #e3f3e4; color: var(--ok); font-weight: bold; }
+
+  /* topic rows */
+  .row { display: flex; align-items: center; justify-content: space-between; gap: 12px;
+         background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 10px 14px; margin-bottom: 6px; }
+  .row.has { border-color: var(--brand-2); background: #f7faff; }
+  .row .t { font-weight: bold; }
+  .row .c { font-size: 13px; color: var(--muted); margin-top: 2px; }
+  .stepper { display: flex; align-items: center; gap: 6px; flex-shrink: 0; }
+  .stepper button { width: 38px; height: 38px; padding: 0; font-size: 20px; line-height: 1; }
+  .stepper .val { min-width: 28px; text-align: center; font-size: 20px; font-weight: bold; color: var(--brand); }
+  .stepper .rest { width: auto; height: 38px; padding: 0 10px; font-size: 12px; }
+
+  /* bottom bar */
+  .bottom { position: fixed; left: 0; right: 0; bottom: 0; background: #fff; border-top: 1px solid var(--line);
+            box-shadow: 0 -4px 14px rgba(0,0,0,.06); }
+  .bottom .in { max-width: 920px; margin: 0 auto; padding: 12px 16px; display: flex; align-items: center;
+                justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+  .big { font-size: 22px; font-weight: bold; color: var(--brand); }
+
+  /* results */
+  table { width: 100%; border-collapse: collapse; background: var(--card); border: 1px solid var(--line); border-radius: 10px; overflow: hidden; }
+  th, td { padding: 8px 10px; border-bottom: 1px solid var(--line); text-align: left; vertical-align: middle; }
+  th { background: var(--brand); color: #fff; font-size: 13px; }
+  td.num, th.num { text-align: center; }
+  tr:last-child td { border-bottom: none; }
+  tfoot td { font-weight: bold; background: #f1f3f6; }
+  .pill { display: inline-block; font-size: 11px; padding: 1px 8px; border-radius: 99px; background: var(--soft); color: var(--brand); margin-top: 3px; }
+  .pts { display: inline-block; min-width: 24px; padding: 1px 6px; border-radius: 6px; font-weight: bold; }
+  .pts.on { background: var(--soft); color: var(--brand); }
+  .pts.off { color: #b8c0cb; font-weight: normal; }
+  .bar { height: 8px; background: #eef0f3; border-radius: 4px; min-width: 70px; }
+  .bar i { display: block; height: 100%; background: var(--brand-2); border-radius: 4px; }
+  .stats { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 12px; }
+  .stat { flex: 1; min-width: 150px; }
+  .stat b { display: block; font-size: 24px; color: var(--brand); }
+  .settings { display: flex; gap: 16px; align-items: end; flex-wrap: wrap; }
+  .settings label { display: block; font-size: 13px; color: var(--muted); margin-bottom: 3px; }
+  .msg { color: var(--bad); margin-top: 8px; min-height: 18px; }
+  details summary { cursor: pointer; color: var(--brand-2); }
+  .footer-actions { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 22px; }
+
+  @media (max-width: 560px) {
+    .row { flex-direction: column; align-items: stretch; }
+    .stepper { justify-content: flex-end; }
+    th, td { padding: 6px; font-size: 13px; }
+  }
+  @media print {
+    body { background: #fff; }
+    .noprint, .bottom { display: none !important; }
+    .wrap { padding: 0; max-width: none; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap" id="app"><p class="muted">Lade …</p></div>
+<div class="bottom" id="bottom" style="display:none"></div>
+
+<script>
+'use strict';
+const app = document.getElementById('app');
+const bottom = document.getElementById('bottom');
+const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+
+let HELLO = null, S = null;
+let user = localStorage.getItem('sv_user') || '';
+let pin = sessionStorage.getItem('sv_pin') || '';
+let votes = {}, dirty = false, saveTimer = null, saveErr = '';
+let onlyMine = false, pollTimer = null, lastResultsKey = '';
+
+async function api(path, opts = {}) {
+  const headers = { 'Content-Type': 'application/json' };
+  if (user) headers['X-User'] = user;
+  if (pin) headers['X-Pin'] = pin;
+  const r = await fetch('/api/' + path, { ...opts, headers });
+  const data = await r.json().catch(() => ({}));
+  if (!r.ok) { const e = new Error(data.error || r.statusText); e.status = r.status; throw e; }
+  return data;
+}
+
+/* ---------- boot / identity ---------- */
+async function boot() {
+  try {
+    HELLO = await (await fetch('/api/hello')).json();
+  } catch (e) { return renderError('Server nicht erreichbar.'); }
+  document.title = HELLO.title + ' – Voting';
+  if (HELLO.pinRequired && !pin) return renderPin();
+  if (!user || !HELLO.participants.includes(user)) return renderPick();
+  try { await refresh(); } catch (e) {
+    if (e.status === 401) { pin = ''; sessionStorage.removeItem('sv_pin'); return renderPin('PIN falsch'); }
+    return renderError(e.message);
+  }
+  clearInterval(pollTimer);
+  pollTimer = setInterval(poll, 3000);
+}
+
+function renderError(msg) { bottom.style.display = 'none'; app.innerHTML = `<div class="card"><b>Fehler:</b> ${esc(msg)}</div>`; }
+
+function renderPin(err = '') {
+  bottom.style.display = 'none';
+  app.innerHTML = `<div class="center card"><h1>${esc(HELLO.title)}</h1>
+    <p class="muted">Bitte PIN eingeben</p>
+    <input type="password" id="pin" autofocus>
+    <p class="msg">${esc(err)}</p>
+    <button class="primary" data-act="pin-ok">Weiter</button></div>`;
+  document.getElementById('pin').addEventListener('keydown', (e) => { if (e.key === 'Enter') submitPin(); });
+}
+function submitPin() {
+  pin = document.getElementById('pin').value;
+  sessionStorage.setItem('sv_pin', pin);
+  boot();
+}
+
+function renderPick() {
+  bottom.style.display = 'none';
+  app.innerHTML = `<div class="center card"><h1>${esc(HELLO.title)}</h1>
+    <p class="muted">Wer bist du? (Ein Gerät = eine Person)</p>
+    <div class="pick">${HELLO.participants.map((p) => `<button data-act="pick" data-name="${esc(p)}">${esc(p)}</button>`).join('')}</div></div>`;
+}
+
+/* ---------- data ---------- */
+async function refresh() {
+  S = await api('state');
+  if (!dirty) votes = { ...S.me.votes };
+  render();
+}
+
+async function poll() {
+  if (!S) return;
+  try {
+    const prev = S;
+    S = await api('state');
+    if (S.phase !== prev.phase) { if (!dirty) votes = { ...S.me.votes }; render(); return; }
+    if (S.phase === 'voting') {
+      if (S.me.submitted !== prev.me.submitted) { render(); return; }
+      renderBottom();
+      const chips = document.getElementById('chips');
+      if (chips) chips.innerHTML = chipsHtml();
+    } else {
+      const key = JSON.stringify(S.results) + JSON.stringify(S.settings);
+      const typing = document.activeElement && document.activeElement.tagName === 'INPUT';
+      if (key !== lastResultsKey && !typing) render();
+    }
+  } catch (e) { /* ignore transient errors, next poll retries */ }
+}
+
+const used = () => Object.values(votes).reduce((a, b) => a + b, 0);
+
+function setVote(id, val) {
+  const others = used() - (votes[id] || 0);
+  val = Math.max(0, Math.min(val, S.points - others));
+  if (val > 0) votes[id] = val; else delete votes[id];
+  dirty = true; saveErr = '';
+  clearTimeout(saveTimer);
+  saveTimer = setTimeout(flush, 350);
+  render();
+}
+
+async function flush() {
+  clearTimeout(saveTimer);
+  if (!dirty) return;
+  const snapshot = { ...votes };
+  try {
+    await api('votes', { method: 'PUT', body: JSON.stringify({ votes: snapshot }) });
+    if (JSON.stringify(snapshot) === JSON.stringify(votes)) dirty = false;
+    saveErr = '';
+  } catch (e) {
+    saveErr = e.message;
+    if (e.status === 409) { dirty = false; await refresh(); return; }
+  }
+  const el = document.getElementById('saveState');
+  if (el) el.textContent = saveText();
+}
+const saveText = () => (saveErr ? '⚠ ' + saveErr : dirty ? 'Speichere …' : 'Automatisch gespeichert ✓');
+
+/* ---------- rendering ---------- */
+function render() {
+  const y = window.scrollY;
+  if (S.phase === 'revealed') { bottom.style.display = 'none'; app.innerHTML = viewResults(); }
+  else { app.innerHTML = viewVoting(); renderBottom(); }
+  window.scrollTo(0, y);
+}
+
+const header = (sub) => `<header class="top"><div><h1>${esc(S.title)}</h1><div class="muted small">${sub}</div></div>
+  <div class="small noprint">Angemeldet als <b>${esc(user)}</b> · <button class="link" data-act="switch-user">wechseln</button></div></header>`;
+
+const chipsHtml = () => S.participants.map((p) =>
+  `<span class="chip ${S.submitted[p] ? 'ok' : ''}">${S.submitted[p] ? '✓' : '…'} ${esc(p)}</span>`).join('');
+
+function viewVoting() {
+  const P = S.points, u = used(), locked = S.me.submitted;
+  const dots = Array.from({ length: P }, (_, i) => `<span class="dot ${i < u ? 'on' : ''}"></span>`).join('');
+  const sections = S.categories.map((cat) => {
+    const ts = cat.topics.filter((t) => !onlyMine || (votes[t.id] || 0) > 0);
+    if (!ts.length) return '';
+    const catPts = cat.topics.reduce((a, t) => a + (votes[t.id] || 0), 0);
+    return `<h2>${esc(cat.name)} <span class="cnt">${catPts ? catPts + ' Pkt von dir' : ''}</span></h2>` +
+      ts.map((t) => rowHtml(t, locked, u, P)).join('');
+  }).join('');
+  return header('Punkte-Voting') + `
+    <div class="card intro small">
+      Du hast <b>${P} Punkte</b>. Verteile sie frei auf die Themen, die dir am wichtigsten sind – alle ${P} auf ein einziges Thema ist erlaubt.
+      Deine Punkte sind für die anderen <b>unsichtbar</b>, bis alle abgegeben haben und die Ergebnisse aufgedeckt werden.
+    </div>
+    <div class="card progress">
+      <div><div class="dots">${dots}</div>
+        <div class="small muted" style="margin-top:6px"><span id="saveState">${esc(saveText())}</span></div></div>
+      <div class="chips" id="chips">${chipsHtml()}</div>
+    </div>
+    <label class="small noprint"><input type="checkbox" data-act="toggle-mine" ${onlyMine ? 'checked' : ''}> Nur Themen mit meinen Punkten anzeigen</label>
+    ${sections || '<p class="muted">Noch keine Punkte vergeben.</p>'}`;
+}
+
+function rowHtml(t, locked, u, P) {
+  const v = votes[t.id] || 0;
+  const rest = P - u;
+  return `<div class="row ${v > 0 ? 'has' : ''}">
+    <div><div class="t">${esc(t.title)}</div>${t.context ? `<div class="c">${esc(t.context)}</div>` : ''}</div>
+    <div class="stepper">
+      ${!locked && rest > 0 ? `<button class="rest ghost" data-act="max" data-id="${esc(t.id)}" title="Alle restlichen Punkte hierhin">+ Rest</button>` : ''}
+      <button data-act="dec" data-id="${esc(t.id)}" ${locked || v <= 0 ? 'disabled' : ''}>−</button>
+      <span class="val">${v}</span>
+      <button data-act="inc" data-id="${esc(t.id)}" ${locked || rest <= 0 ? 'disabled' : ''}>+</button>
+    </div></div>`;
+}
+
+function renderBottom() {
+  bottom.style.display = '';
+  const P = S.points, u = used();
+  const allIn = S.participants.every((p) => S.submitted[p]);
+  const waiting = S.participants.filter((p) => !S.submitted[p]);
+  if (!S.me.submitted) {
+    bottom.innerHTML = `<div class="in"><div><span class="big">${P - u}</span> <span class="muted">von ${P} Punkten frei</span></div>
+      <button class="primary" data-act="submit">Abstimmung abgeben</button></div>`;
+  } else {
+    bottom.innerHTML = `<div class="in"><div><b>✓ Abgegeben.</b> <span class="muted small">${allIn ? 'Alle haben abgegeben.' : 'Warte auf: ' + esc(waiting.join(', '))}</span></div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <button class="ghost" data-act="unsubmit">Abgabe zurückziehen</button>
+        ${allIn ? '<button class="primary" data-act="reveal">Ergebnisse aufdecken</button>'
+                : '<button class="ghost" data-act="reveal-force">Trotzdem aufdecken</button>'}
+      </div></div>`;
+  }
+}
+
+function viewResults() {
+  const R = S.results, st = S.settings;
+  lastResultsKey = JSON.stringify(R) + JSON.stringify(st);
+  const P = S.participants;
+  const ptsCell = (n) => `<span class="pts ${n > 0 ? 'on' : 'off'}">${n > 0 ? n : '–'}</span>`;
+  const maxTotal = Math.max(1, ...R.deep.map((r) => r.total));
+  const deepRows = R.deep.map((r, i) => `<tr>
+      <td class="num">${i + 1}</td>
+      <td><b>${esc(r.title)}</b><br><span class="pill">${esc(r.category)}</span></td>
+      ${P.map((p) => `<td class="num">${ptsCell(r.per[p])}</td>`).join('')}
+      <td class="num"><b>${r.total}</b></td>
+      <td><div class="bar"><i style="width:${(r.total / maxTotal) * 100}%"></i></div></td>
+      <td class="num"><b>${r.minutes}</b></td></tr>`).join('');
+  const pitchRows = R.pitch.map((r) => {
+    const who = P.filter((p) => r.per[p] > 0);
+    return `<tr><td><b>${esc(r.title)}</b><br><span class="pill">${esc(r.category)}</span></td>
+      <td>${esc(who.join(', '))}</td><td class="num">${r.total}</td><td class="num">${r.minutes}</td></tr>`;
+  }).join('');
+  const voted = R.deep.length + R.pitch.length;
+
+  return header('Ergebnisse') + `
+    <div class="stats">
+      <div class="card stat"><b>${R.totalPoints}</b><span class="muted small">Punkte vergeben</span></div>
+      <div class="card stat"><b>${voted}</b><span class="muted small">Themen mit Stimmen</span></div>
+      <div class="card stat"><b>${R.deep.length}</b><span class="muted small">Deep Dive (≥ ${st.minVoters} Stimmen)</span></div>
+      <div class="card stat"><b>${R.pitch.length}</b><span class="muted small">Kurz-Pitch (1 Stimme)</span></div>
+    </div>
+
+    <div class="card noprint">
+      <div class="settings">
+        <div><label for="s-day2">Zeit Tag 2 (Min.)</label><input type="number" id="s-day2" min="30" max="1440" step="5" value="${st.day2Minutes}"></div>
+        <div><label for="s-pitch">Pitch pro Thema (Min.)</label><input type="number" id="s-pitch" min="1" max="60" value="${st.pitchMinutes}"></div>
+        <div><label for="s-min">Deep Dive ab … Stimmen</label><input type="number" id="s-min" min="1" max="${P.length}" value="${st.minVoters}"></div>
+        <button data-act="save-settings">Übernehmen</button>
+      </div>
+      <div class="msg" id="settingsMsg"></div>
+    </div>
+
+    <h2>Nachmittag: Kurz-Pitch <span class="cnt">Themen mit nur einer Stimme · ${R.pitchMinutes} Min. insgesamt</span></h2>
+    ${R.pitch.length ? `<table><thead><tr><th>Thema</th><th>Pitch durch</th><th class="num">Punkte</th><th class="num">Min.</th></tr></thead>
+      <tbody>${pitchRows}</tbody>
+      <tfoot><tr><td colspan="3">Summe</td><td class="num">${R.pitchMinutes}</td></tr></tfoot></table>`
+      : '<p class="muted small">Keine Themen mit nur einer Stimme.</p>'}
+
+    <h2>Tag 2: Deep Dive <span class="cnt">Themen mit ≥ ${st.minVoters} Stimmen · ${R.deepMinutes} Min. insgesamt</span></h2>
+    ${R.deep.length ? `<table><thead><tr><th class="num">#</th><th>Thema</th>${P.map((p) => `<th class="num">${esc(p)}</th>`).join('')}<th class="num">Total</th><th></th><th class="num">Min.</th></tr></thead>
+      <tbody>${deepRows}</tbody>
+      <tfoot><tr><td colspan="${2 + P.length}">Summe</td><td class="num">${R.deep.reduce((a, r) => a + r.total, 0)}</td><td></td><td class="num">${R.deepMinutes}</td></tr></tfoot></table>
+      <p class="muted small">Redezeit = Punkteanteil × ${st.day2Minutes} Min., in 5-Minuten-Schritten (Summe geht exakt auf).</p>`
+      : '<p class="muted small">Kein Thema hat Stimmen von mindestens ' + st.minVoters + ' Personen.</p>'}
+
+    <details style="margin-top:18px"><summary>${R.none.length} Themen ohne Stimmen</summary>
+      <ul class="small">${R.none.map((r) => `<li>${esc(r.title)} <span class="muted">(${esc(r.category)})</span></li>`).join('')}</ul></details>
+
+    <div class="footer-actions noprint">
+      <button class="primary" data-act="export">Als CSV exportieren</button>
+      <button data-act="print">Drucken / PDF</button>
+      <button class="danger" data-act="reset">Alle Stimmen zurücksetzen</button>
+    </div>`;
+}
+
+/* ---------- actions ---------- */
+function exportCsv() {
+  const R = S.results, P = S.participants;
+  const q = (v) => '"' + String(v).replace(/"/g, '""') + '"';
+  const head = ['Block', 'Rang', 'Thema', 'Kategorie', ...P, 'Total', 'Stimmen', 'Minuten'];
+  const line = (block, r, i) => [block, i + 1, r.title, r.category, ...P.map((p) => r.per[p]), r.total, r.voters, r.minutes].map(q).join(';');
+  const rows = [head.map(q).join(';'),
+    ...R.pitch.map((r, i) => line('Nachmittag Pitch', r, i)),
+    ...R.deep.map((r, i) => line('Tag 2 Deep Dive', r, i)),
+    ...R.none.map((r, i) => line('Ohne Stimmen', { ...r, minutes: 0 }, i))];
+  const blob = new Blob(['\ufeff' + rows.join('\r\n')], { type: 'text/csv;charset=utf-8' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob); a.download = 'strategietage-voting-ergebnis.csv';
+  document.body.appendChild(a); a.click(); a.remove();
+}
+
+document.addEventListener('change', (e) => {
+  if (e.target.dataset.act === 'toggle-mine') { onlyMine = e.target.checked; render(); }
+});
+
+document.addEventListener('click', async (e) => {
+  const b = e.target.closest('[data-act]');
+  if (!b || b.disabled || b.tagName === 'INPUT') return;
+  const act = b.dataset.act, id = b.dataset.id;
+  try {
+    if (act === 'pin-ok') return submitPin();
+    if (act === 'pick') { user = b.dataset.name; localStorage.setItem('sv_user', user); return boot(); }
+    if (act === 'switch-user') { clearInterval(pollTimer); await flush(); user = ''; localStorage.removeItem('sv_user'); S = null; return renderPick(); }
+    if (act === 'inc') return setVote(id, (votes[id] || 0) + 1);
+    if (act === 'dec') return setVote(id, (votes[id] || 0) - 1);
+    if (act === 'max') return setVote(id, (votes[id] || 0) + (S.points - used()));
+    if (act === 'submit') {
+      await flush();
+      if (dirty) return;
+      const u = used();
+      if (u < S.points && !confirm(u === 0 ? 'Du hast noch keine Punkte vergeben. Trotzdem abgeben?'
+        : `Du hast erst ${u} von ${S.points} Punkten vergeben. Trotzdem abgeben?`)) return;
+      await api('submit', { method: 'POST' });
+      return refresh();
+    }
+    if (act === 'unsubmit') { await api('unsubmit', { method: 'POST' }); return refresh(); }
+    if (act === 'reveal') { await api('reveal', { method: 'POST', body: '{}' }); return refresh(); }
+    if (act === 'reveal-force') {
+      const waiting = S.participants.filter((p) => !S.submitted[p]).join(', ');
+      if (!confirm(`${waiting} hat noch nicht abgegeben. Ergebnisse trotzdem aufdecken?`)) return;
+      await api('reveal', { method: 'POST', body: JSON.stringify({ force: true }) });
+      return refresh();
+    }
+    if (act === 'save-settings') {
+      const body = {
+        day2Minutes: parseInt(document.getElementById('s-day2').value, 10),
+        pitchMinutes: parseInt(document.getElementById('s-pitch').value, 10),
+        minVoters: parseInt(document.getElementById('s-min').value, 10),
+      };
+      try { await api('settings', { method: 'POST', body: JSON.stringify(body) }); await refresh(); }
+      catch (err) { document.getElementById('settingsMsg').textContent = err.message; }
+      return;
+    }
+    if (act === 'export') return exportCsv();
+    if (act === 'print') return window.print();
+    if (act === 'reset') {
+      if (!confirm('Wirklich ALLE Stimmen löschen und neu starten?')) return;
+      if (!confirm('Letzte Rückfrage: Das kann nicht rückgängig gemacht werden.')) return;
+      await api('reset', { method: 'POST', body: JSON.stringify({ confirm: true }) });
+      votes = {}; dirty = false;
+      return refresh();
+    }
+  } catch (err) { alert(err.message); }
+});
+
+window.addEventListener('beforeunload', () => {
+  if (dirty && S && !S.me.submitted) {
+    const h = { 'Content-Type': 'application/json', 'X-User': user };
+    if (pin) h['X-Pin'] = pin;
+    fetch('/api/votes', { method: 'PUT', headers: h, body: JSON.stringify({ votes }), keepalive: true });
+  }
+});
+
+boot();
+</script>
+</body>
+</html>
