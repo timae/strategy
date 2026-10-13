@@ -9,8 +9,11 @@ function memoryStore() {
   const submitted = new Set();
   let phase = 'voting';
   let settings = {};
+  let catalog = null;
   return {
     kind: 'memory',
+    async getCatalog() { return catalog; },
+    async setCatalog(str) { catalog = str; },
     async getPhase() { return phase; },
     async setPhase(p) { phase = p; },
     async getVotes(u) { return { ...(votes.get(u) || {}) }; },
@@ -32,6 +35,8 @@ async function redisStore(url) {
   const toIntMap = (h) => Object.fromEntries(Object.entries(h).map(([a, b]) => [a, parseInt(b, 10)]));
   return {
     kind: 'redis',
+    async getCatalog() { return c.get(k('catalog')); },
+    async setCatalog(str) { await c.set(k('catalog'), str); },
     async getPhase() { return (await c.get(k('phase'))) || 'voting'; },
     async setPhase(p) { await c.set(k('phase'), p); },
     async getVotes(u) { return toIntMap(await c.hGetAll(k('votes', u))); },

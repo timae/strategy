@@ -22,6 +22,7 @@ Votes are auto-saved to Redis on every click, so a reload or crash loses nothing
    - **Nachmittag: Kurz-Pitch** – topics with only one voter, 5 min each (the voter pitches it).
    - **Tag 2: Deep Dive** – topics with at least 2 voters, ranked by points. The 360 minutes
      are split proportionally to points in 5-minute steps (sums exactly to 360).
+   - **Themen-Ranking:** categories ranked by the sum of their topic points (automatic roll-up, no extra voting).
    - Topics without votes are listed collapsed. CSV export and print/PDF are available.
    - Time budget, pitch length and the "2 voters" threshold can be changed on the page.
 
@@ -37,10 +38,21 @@ Votes are auto-saved to Redis on every click, so a reload or crash loses nothing
 | `ACCESS_PIN` | empty | Optional shared PIN asked when opening the page |
 | `REDIS_URL` | `redis://redis:6379` | Without it the app falls back to an in-memory store (dev only) |
 
-## Topics and categories
+## Topics and categories (editable in the app)
 
-Edit `topics.json` (categories -> topics with `id`, `title`, `context`) and restart:
-`docker compose restart app`. Keep ids unique and stable once voting has started.
+Click **"Themen bearbeiten"** on the voting page to add, rename, move (up/down), re-assign and delete
+topics and categories. Changes are saved in Redis and appear live for everyone (a short notice tells
+the others who changed the list).
+
+- Deleting a topic or category also removes the points already placed on it; those points are free again.
+- Editing is locked once the results are revealed (use "Alle Stimmen zurücksetzen" to start a new round;
+  your custom topic list is kept).
+- "Themenliste auf Standard zurücksetzen" (in edit mode) restores the list from `topics.json`
+  **and clears all votes**.
+- `topics.json` is only the *initial seed* used on the very first start (or after the reset above).
+  To re-seed from a changed `topics.json`: use that reset button, or
+  `docker compose exec redis redis-cli del strategie2026:catalog` and restart the app.
+- Limits: 30 categories, 200 topics, titles up to 200 characters, context up to 500, category names must be unique.
 
 ## Notes
 

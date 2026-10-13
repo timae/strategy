@@ -89,6 +89,17 @@
   details summary { cursor: pointer; color: var(--brand-2); }
   .footer-actions { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 22px; }
 
+  .toolbar { display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap; margin: 6px 0; }
+  .cat-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+  .tools { display: flex; gap: 6px; flex-shrink: 0; }
+  .tools button { width: 34px; height: 34px; padding: 0; }
+  button.add { width: 100%; border-style: dashed; margin: 2px 0 6px; color: var(--brand-2); }
+  .notice { background: #fff8e1; border-color: #f3dd9b; }
+  .modal { position: fixed; inset: 0; background: rgba(20,28,40,.45); display: flex; align-items: center; justify-content: center; padding: 16px; z-index: 50; }
+  .modal .box { background: #fff; border-radius: 12px; padding: 18px; width: 100%; max-width: 480px; }
+  .modal label { display: block; font-size: 13px; color: var(--muted); margin: 10px 0 3px; }
+  .modal textarea, .modal select { font: inherit; padding: 8px 10px; border: 1px solid var(--line); border-radius: 8px; width: 100%; }
+  .modal .btns { display: flex; justify-content: flex-end; gap: 8px; margin-top: 14px; }
   @media (max-width: 560px) {
     .row { flex-direction: column; align-items: stretch; }
     .stepper { justify-content: flex-end; }
@@ -104,6 +115,7 @@
 <body>
 <div class="wrap" id="app"><p class="muted">Lade …</p></div>
 <div class="bottom" id="bottom" style="display:none"></div>
+<div id="modal"></div>
 
 <script>
 'use strict';
@@ -116,6 +128,7 @@ let user = localStorage.getItem('sv_user') || '';
 let pin = sessionStorage.getItem('sv_pin') || '';
 let votes = {}, dirty = false, saveTimer = null, saveErr = '';
 let onlyMine = false, pollTimer = null, lastResultsKey = '';
+let editMode = false, modal = null, pendingRender = false, notice = '', noticeTimer = null;
 
 async function api(path, opts = {}) {
   const headers = { 'Content-Type': 'application/json' };
@@ -171,8 +184,21 @@ function renderPick() {
 async function refresh() {
   S = await api('state');
   if (!dirty) votes = { ...S.me.votes };
+  pruneVotes();
   render();
 }
+
+function pruneVotes() {
+  const ids = new Set(S.categories.flatMap((c) => c.topics.map((t) => t.id)));
+  for (const id of Object.keys(votes)) if (!ids.has(id)) delete votes[id];
+}
+
+function setNotice(msg) {
+  notice = msg;
+  clearTimeout(noticeTimer);
+  noticeTimer = setTimeout(() => { notice = ''; if (!modal && S && S.phase === 'voting') render(); }, 6000);
+}
+const noticeHtml = () => (notice ? `<div class="card notice small">${esc(notice)}</div>` : '');
 
 async function poll() {
   if (!S) return;
@@ -181,6 +207,12 @@ async function poll() {
     S = await api('state');
     if (S.phase !== prev.phase) { if (!dirty) votes = { ...S.me.votes }; render(); return; }
     if (S.phase === 'voting') {
+      if (S.rev !== prev.rev) {
+        pruneVotes();
+        if (S.updatedBy && S.updatedBy !== user) setNotice(`${S.updatedBy} hat die Themenliste geändert.`);
+        if (modal) pendingRender = true; else render();
+        return;
+      }
       if (S.me.submitted !== prev.me.submitted) { render(); return; }
       renderBottom();
       const chips = document.getElementById('chips');
@@ -256,9 +288,81 @@ function viewVoting() {
         <div class="small muted" style="margin-top:6px"><span id="saveState">${esc(saveText())}</span></div></div>
       <div class="chips" id="chips">${chipsHtml()}</div>
     </div>
-    <label class="small noprint"><input type="checkbox" data-act="toggle-mine" ${onlyMine ? 'checked' : ''}> Nur Themen mit meinen Punkten anzeigen</label>
-    ${sections || '<p class="muted">Noch keine Punkte vergeben.</p>'}`;
+    ${noticeHtml()}
+    <div class="toolbar noprint">
+      ${editMode ? '<span class="small muted">Bearbeitungsmodus – Änderungen sind sofort für alle sichtbar.</span>'
+        : `<label class="small"><input type="checkbox" data-act="toggle-mine" ${onlyMine ? 'checked' : ''}> Nur Themen mit meinen Punkten anzeigen</label>`}
+      <button class="${editMode ? 'primary' : 'ghost'}" data-act="toggle-edit">${editMode ? 'Fertig' : 'Themen bearbeiten'}</button>
+    </div>
+    ${editMode ? editSections() : (sections || '<p class="muted">Noch keine Punkte vergeben.</p>')}`;
 }
+
+function editSections() {
+  const cats = S.categories;
+  const tool = (act, id, label, title, disabled, cls = '') =>
+    `<button class="${cls}" data-act="${act}" data-id="${esc(id)}" title="${title}" ${disabled ? 'disabled' : ''}>${label}</button>`;
+  const body = cats.map((cat, ci) => `
+    <div class="cat-head"><h2>${esc(cat.name)} <span class="cnt">${cat.topics.length} Themen</span></h2>
+      <div class="tools">
+        ${tool('cat-up', cat.id, '↑', 'Kategorie nach oben', ci === 0)}${tool('cat-down', cat.id, '↓', 'Kategorie nach unten', ci === cats.length - 1)}
+        ${tool('cat-edit', cat.id, '✎', 'Kategorie umbenennen', false)}${tool('cat-del', cat.id, '✕', 'Kategorie löschen', false, 'danger')}
+      </div></div>` +
+    cat.topics.map((t, ti) => `<div class="row">
+      <div><div class="t">${esc(t.title)}</div>${t.context ? `<div class="c">${esc(t.context)}</div>` : ''}</div>
+      <div class="tools">
+        ${tool('topic-up', t.id, '↑', 'Nach oben', ti === 0)}${tool('topic-down', t.id, '↓', 'Nach unten', ti === cat.topics.length - 1)}
+        ${tool('topic-edit', t.id, '✎', 'Bearbeiten', false)}${tool('topic-del', t.id, '✕', 'Löschen', false, 'danger')}
+      </div></div>`).join('') +
+    `<button class="ghost add" data-act="topic-add" data-cat="${esc(cat.id)}">+ Thema hinzufügen</button>`).join('');
+  return body + `<div style="margin-top:20px"><button data-act="cat-add">+ Kategorie hinzufügen</button></div>
+    <div class="footer-actions"><button class="danger ghost" data-act="catalog-reset">Themenliste auf Standard zurücksetzen</button></div>`;
+}
+
+function modalHtml() {
+  if (!modal) return '';
+  let title, fields;
+  if (modal.type === 'cat-new' || modal.type === 'cat-edit') {
+    title = modal.type === 'cat-new' ? 'Neue Kategorie' : 'Kategorie umbenennen';
+    fields = `<label for="m-name">Name</label><input type="text" id="m-name" maxlength="80" value="${esc(modal.name || '')}">`;
+  } else {
+    title = modal.type === 'topic-new' ? 'Neues Thema' : 'Thema bearbeiten';
+    fields = `<label for="m-title">Titel</label><input type="text" id="m-title" maxlength="200" value="${esc(modal.title || '')}">
+      <label for="m-context">Kontext (optional)</label><textarea id="m-context" maxlength="500" rows="3">${esc(modal.context || '')}</textarea>
+      <label for="m-cat">Kategorie</label><select id="m-cat">${S.categories.map((c) => `<option value="${esc(c.id)}" ${c.id === modal.categoryId ? 'selected' : ''}>${esc(c.name)}</option>`).join('')}</select>`;
+  }
+  return `<div class="modal"><div class="box"><h3>${title}</h3>${fields}<div class="msg" id="modalMsg"></div>
+    <div class="btns"><button class="ghost" data-act="modal-cancel">Abbrechen</button><button class="primary" data-act="modal-save">Speichern</button></div></div></div>`;
+}
+function openModal(m) {
+  modal = m;
+  document.getElementById('modal').innerHTML = modalHtml();
+  const first = document.querySelector('#modal input, #modal textarea');
+  if (first) first.focus();
+}
+function closeModal() {
+  modal = null;
+  document.getElementById('modal').innerHTML = '';
+  if (pendingRender) { pendingRender = false; render(); }
+}
+const val = (id) => document.getElementById(id).value;
+async function saveModal() {
+  const msg = document.getElementById('modalMsg');
+  msg.textContent = '';
+  const json = (o) => JSON.stringify(o);
+  try {
+    if (modal.type === 'cat-new') await api('categories', { method: 'POST', body: json({ name: val('m-name') }) });
+    else if (modal.type === 'cat-edit') await api('categories/' + modal.id, { method: 'PATCH', body: json({ name: val('m-name') }) });
+    else {
+      const body = json({ categoryId: val('m-cat'), title: val('m-title'), context: val('m-context') });
+      if (modal.type === 'topic-new') await api('topics', { method: 'POST', body });
+      else await api('topics/' + modal.id, { method: 'PATCH', body });
+    }
+    pendingRender = false;
+    closeModal();
+    await refresh();
+  } catch (e) { msg.textContent = e.message; }
+}
+const findTopicLocal = (id) => { for (const c of S.categories) { const t = c.topics.find((x) => x.id === id); if (t) return { t, c }; } return null; };
 
 function rowHtml(t, locked, u, P) {
   const v = votes[t.id] || 0;
@@ -310,6 +414,15 @@ function viewResults() {
       <td>${esc(who.join(', '))}</td><td class="num">${r.total}</td><td class="num">${r.minutes}</td></tr>`;
   }).join('');
   const voted = R.deep.length + R.pitch.length;
+  const maxCat = Math.max(1, ...R.categories.map((c) => c.total));
+  const catRows = R.categories.map((c, i) => `<tr>
+      <td class="num">${i + 1}</td><td><b>${esc(c.name)}</b></td>
+      ${P.map((p) => `<td class="num">${ptsCell(c.per[p])}</td>`).join('')}
+      <td class="num"><b>${c.total}</b></td>
+      <td><div class="bar"><i style="width:${(c.total / maxCat) * 100}%"></i></div></td>
+      <td class="num">${R.totalPoints ? Math.round((c.total / R.totalPoints) * 100) + '%' : '–'}</td>
+      <td class="num">${c.topicsVoted} / ${c.topicsTotal}</td>
+      <td class="num">${c.minutes || '–'}</td></tr>`).join('');
 
   return header('Ergebnisse') + `
     <div class="stats">
@@ -328,6 +441,10 @@ function viewResults() {
       </div>
       <div class="msg" id="settingsMsg"></div>
     </div>
+
+    <h2>Themen-Ranking <span class="cnt">Summe der Punkte je Kategorie</span></h2>
+    <table><thead><tr><th class="num">#</th><th>Kategorie</th>${P.map((p) => `<th class="num">${esc(p)}</th>`).join('')}<th class="num">Total</th><th></th><th class="num">Anteil</th><th class="num">Themen mit Stimmen</th><th class="num">Min. gesamt</th></tr></thead>
+      <tbody>${catRows}</tbody></table>
 
     <h2>Nachmittag: Kurz-Pitch <span class="cnt">Themen mit nur einer Stimme · ${R.pitchMinutes} Min. insgesamt</span></h2>
     ${R.pitch.length ? `<table><thead><tr><th>Thema</th><th>Pitch durch</th><th class="num">Punkte</th><th class="num">Min.</th></tr></thead>
@@ -361,7 +478,8 @@ function exportCsv() {
   const rows = [head.map(q).join(';'),
     ...R.pitch.map((r, i) => line('Nachmittag Pitch', r, i)),
     ...R.deep.map((r, i) => line('Tag 2 Deep Dive', r, i)),
-    ...R.none.map((r, i) => line('Ohne Stimmen', { ...r, minutes: 0 }, i))];
+    ...R.none.map((r, i) => line('Ohne Stimmen', { ...r, minutes: 0 }, i)),
+    ...R.categories.map((c, i) => line('Kategorie (Summe)', { title: c.name, category: c.name, per: c.per, total: c.total, voters: c.voters, minutes: c.minutes }, i))];
   const blob = new Blob(['\ufeff' + rows.join('\r\n')], { type: 'text/csv;charset=utf-8' });
   const a = document.createElement('a');
   a.href = URL.createObjectURL(blob); a.download = 'strategietage-voting-ergebnis.csv';
@@ -380,6 +498,30 @@ document.addEventListener('click', async (e) => {
     if (act === 'pin-ok') return submitPin();
     if (act === 'pick') { user = b.dataset.name; localStorage.setItem('sv_user', user); return boot(); }
     if (act === 'switch-user') { clearInterval(pollTimer); await flush(); user = ''; localStorage.removeItem('sv_user'); S = null; return renderPick(); }
+    if (act === 'toggle-edit') { editMode = !editMode; return render(); }
+    if (act === 'cat-add') return openModal({ type: 'cat-new' });
+    if (act === 'cat-edit') { const c = S.categories.find((x) => x.id === id); return openModal({ type: 'cat-edit', id, name: c.name }); }
+    if (act === 'cat-del') {
+      const c = S.categories.find((x) => x.id === id);
+      if (!confirm(`Kategorie „${c.name}“ mit ${c.topics.length} Themen löschen? Bereits vergebene Punkte auf diese Themen gehen verloren.`)) return;
+      await api('categories/' + id, { method: 'DELETE' }); return refresh();
+    }
+    if (act === 'cat-up' || act === 'cat-down') { await api(`categories/${id}/move`, { method: 'POST', body: JSON.stringify({ dir: act === 'cat-up' ? -1 : 1 }) }); return refresh(); }
+    if (act === 'topic-add') return openModal({ type: 'topic-new', categoryId: b.dataset.cat });
+    if (act === 'topic-edit') { const f = findTopicLocal(id); return openModal({ type: 'topic-edit', id, title: f.t.title, context: f.t.context, categoryId: f.c.id }); }
+    if (act === 'topic-del') {
+      const f = findTopicLocal(id);
+      if (!confirm(`Thema „${f.t.title}“ löschen? Bereits vergebene Punkte darauf gehen verloren.`)) return;
+      await api('topics/' + id, { method: 'DELETE' }); return refresh();
+    }
+    if (act === 'topic-up' || act === 'topic-down') { await api(`topics/${id}/move`, { method: 'POST', body: JSON.stringify({ dir: act === 'topic-up' ? -1 : 1 }) }); return refresh(); }
+    if (act === 'catalog-reset') {
+      if (!confirm('Themenliste auf die Standardliste zurücksetzen? Alle eigenen Änderungen UND alle Stimmen gehen verloren.')) return;
+      await api('catalog/reset', { method: 'POST', body: JSON.stringify({ confirm: true }) });
+      votes = {}; dirty = false; return refresh();
+    }
+    if (act === 'modal-cancel') return closeModal();
+    if (act === 'modal-save') return saveModal();
     if (act === 'inc') return setVote(id, (votes[id] || 0) + 1);
     if (act === 'dec') return setVote(id, (votes[id] || 0) - 1);
     if (act === 'max') return setVote(id, (votes[id] || 0) + (S.points - used()));
@@ -420,6 +562,12 @@ document.addEventListener('click', async (e) => {
       return refresh();
     }
   } catch (err) { alert(err.message); }
+});
+
+document.addEventListener('keydown', (e) => {
+  if (!modal) return;
+  if (e.key === 'Escape') closeModal();
+  if (e.key === 'Enter' && e.target.tagName === 'INPUT') { e.preventDefault(); saveModal(); }
 });
 
 window.addEventListener('beforeunload', () => {
